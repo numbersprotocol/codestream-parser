@@ -3,6 +3,7 @@
 # $Id: caifile.py,v 1.75 2020/10/15 12:14:27 thor Exp $
 
 import getopt
+import json
 import sys
 
 from jp2box import *
@@ -2344,7 +2345,95 @@ def cai_superbox_hook(box,id,length):
             box.print_indent("(unknown box)")
             box.print_hex(buffer)    
 
+
+def cai_boxes_to_json(box_list):
+    claim_block = []
+    store = {}
+    current_lv3 = "assertion_store"
+
+    for box in box_list:
+        if box["box_type"] == "jumd":
+            if box["type"] == "6361636200110010800000aa00389b71":
+                # Lv1: Claim Block
+                print(box)
+            elif box["type"] == "6361737400110010800000aa00389b71":
+                # Lv2: Store
+                print('\t{}'.format(box))
+
+                store = {
+                    # exmaple: numbersprotocol_1
+                    "label": box["label"]
+                }
+            elif box["type"] == "6361617300110010800000aa00389b71":
+                # Lv3: Assertion Store
+                print('\t\t{}'.format(box))
+
+                store["assertion_store"] = {
+                    # example: cai.assersions
+                    "label": box["label"],
+                    "assertions": []
+                }
+                current_lv3 = "assertion_store"
+            elif box["type"] == "6361636c00110010800000aa00389b71":
+                # Lv3: Claim
+                print('\t\t{}'.format(box))
+
+                store["claim"] = {
+                    # example: cai.claim
+                    "label": box["label"]
+                }
+                current_lv3 = "claim"
+            elif box["type"] == "6361736700110010800000aa00389b71":
+                # Lv3: Signature
+                print('\t\t{}'.format(box))
+
+                store["signature"] = {
+                    # example: cai.signature
+                    "label": box["label"]
+                }
+                current_lv3 = "signature"
+
+                claim_block.append(store)
+                store = {}
+            elif box["type"] == "6a736f6e00110010800000aa00389b71":
+                # Lv4: JSON Description Box
+                print('\t\t\t{}'.format(box))
+
+                store["assertion_store"]["assertions"].append({
+                    "label": box["label"],
+                    "content": {}
+                })
+            elif box["type"] == "6579d6fbdba2446bb2ac1b82feeb89d1":
+                # Lv4: Thumbnail
+                print('\t\t\t{}'.format(box))
+
+                store["assertion_store"]["assertions"].append({
+                    "label": box["label"]
+                })
+            else:
+                print("Un-handled type " + box["type"])
+        elif box["box_type"] == "json":
+            # Lv4: JSON Content Box
+            print('\t\t\t{}'.format(box))
+
+            if current_lv3 == "assertion_store":
+                store["assertion_store"]["assertions"][-1]["content"] = json.loads(box["data"])
+            elif current_lv3 == "claim":
+                store["claim"]["content"] = json.loads(box["data"])
+            elif current_lv3 == "signature":
+                store["signature"]["content"] = json.loads(box["data"])
+            else:
+                print("Should not be here")
+        else:
+            print("Un-handled box type " + box_type)
+
+    print("Final CAI JSON")
+    print(json.dumps(claim_block, indent=4))
+    return claim_block
+
+
 ignore_codestream = 0
+
 if __name__ == "__main__":
     
     # Read Arguments
@@ -2389,7 +2478,8 @@ if __name__ == "__main__":
 
     if len(Cai_boxes) != 0:
         print("CAI Boxes")
-        for box in Cai_boxes:
-            print(box)
+        #for box in Cai_boxes:
+        #    print(box)
+        cai_boxes_to_json(Cai_boxes)
     else:
         print("Do not find any CAI Box.")
