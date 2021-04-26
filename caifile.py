@@ -2349,6 +2349,7 @@ def cai_superbox_hook(box,id,length):
 def cai_boxes_to_json(box_list):
     claim_block = []
     store = {}
+    assertion_label = ""
     current_lv3 = "assertion_store"
 
     for box in box_list:
@@ -2371,7 +2372,7 @@ def cai_boxes_to_json(box_list):
                 store["assertion_store"] = {
                     # example: cai.assersions
                     "label": box["label"],
-                    "assertions": []
+                    "assertions": {}
                 }
                 current_lv3 = "assertion_store"
             elif box["type"] == "6361636c00110010800000aa00389b71":
@@ -2399,17 +2400,14 @@ def cai_boxes_to_json(box_list):
                 # Lv4: JSON Description Box
                 print('\t\t\t{}'.format(box))
 
-                store["assertion_store"]["assertions"].append({
-                    "label": box["label"],
-                    "content": {}
-                })
+                assertion_label = box["label"]
+                store["assertion_store"]["assertions"][assertion_label] = None
             elif box["type"] == "6579d6fbdba2446bb2ac1b82feeb89d1":
                 # Lv4: Thumbnail
                 print('\t\t\t{}'.format(box))
 
-                store["assertion_store"]["assertions"].append({
-                    "label": box["label"]
-                })
+                assertion_label = box["label"]
+                store["assertion_store"]["assertions"][assertion_label] = None
             else:
                 print("Un-handled type " + box["type"])
         elif box["box_type"] == "json":
@@ -2417,7 +2415,7 @@ def cai_boxes_to_json(box_list):
             print('\t\t\t{}'.format(box))
 
             if current_lv3 == "assertion_store":
-                store["assertion_store"]["assertions"][-1]["content"] = json.loads(box["data"])
+                store["assertion_store"]["assertions"][assertion_label] = json.loads(box["data"])
             elif current_lv3 == "claim":
                 store["claim"]["content"] = json.loads(box["data"])
             elif current_lv3 == "signature":
