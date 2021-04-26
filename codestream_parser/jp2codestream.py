@@ -4,7 +4,7 @@
 
 import sys
 
-from jp2utils import *
+from codestream_parser.jp2utils import *
 
 #
 # Some Exceptions

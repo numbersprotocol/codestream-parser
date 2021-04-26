@@ -4,10 +4,10 @@
 
 import sys
 
-from jp2utils import *
-from jpgxtbox import *
-from jp2box import *
-from jp2file import *
+from codestream_parser.jp2utils import *
+from codestream_parser.jpgxtbox import *
+from codestream_parser.jp2box import *
+from codestream_parser.jp2file import *
 
 #
 # Some Exceptions

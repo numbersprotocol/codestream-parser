@@ -4,8 +4,8 @@
 
 import getopt
 import sys
-from jp2utils import *
-from icc import *
+from codestream_parser.jp2utils import *
+from codestream_parser.icc import *
 
 def lordw(buffer):
     return (ord(buffer[1]) << 8) + \

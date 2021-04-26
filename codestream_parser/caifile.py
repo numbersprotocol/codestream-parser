@@ -4,15 +4,16 @@
 
 import getopt
 import json
+import logging
 import sys
 
-from jp2box import *
-from jp2codestream import *
-from jp2utils import *
-from icc import *
-from jxrfile import *
-from jpgcodestream import *
-from jxscodestream import *
+from codestream_parser.jp2box import *
+from codestream_parser.jp2codestream import *
+from codestream_parser.jp2utils import *
+from codestream_parser.icc import *
+from codestream_parser.jxrfile import *
+from codestream_parser.jpgcodestream import *
+from codestream_parser.jxscodestream import *
 
 
 # JUMBF Description Boxes
@@ -2110,7 +2111,7 @@ def cai_superbox_hook(box,id,length):
             elif type[0] == 0xff and type[1] == 0xd8:
                 # WORKAROUND: Prevent NameError caused by circular imports
                 # between jp2file and jpgcodestream.
-                from jpgcodestream import JPGCodestream
+                from codestream_parser.jpgcodestream import JPGCodestream
                 cs = JPGCodestream(indent = box.indent + 1, hook = superbox_hook)
                 cs.stream_parse(box.infile,box.offset)
             elif type[0] == 0xff and type[1] == 0x10:
@@ -2356,10 +2357,10 @@ def cai_boxes_to_json(box_list):
         if box["box_type"] == "jumd":
             if box["type"] == "6361636200110010800000aa00389b71":
                 # Lv1: Claim Block
-                print(box)
+                logging.debug('{}'.format(box))
             elif box["type"] == "6361737400110010800000aa00389b71":
                 # Lv2: Store
-                print('\t{}'.format(box))
+                logging.debug('\t{}'.format(box))
 
                 store = {
                     # exmaple: numbersprotocol_1
@@ -2367,7 +2368,7 @@ def cai_boxes_to_json(box_list):
                 }
             elif box["type"] == "6361617300110010800000aa00389b71":
                 # Lv3: Assertion Store
-                print('\t\t{}'.format(box))
+                logging.debug('\t\t{}'.format(box))
 
                 store["assertion_store"] = {
                     # example: cai.assersions
@@ -2377,7 +2378,7 @@ def cai_boxes_to_json(box_list):
                 current_lv3 = "assertion_store"
             elif box["type"] == "6361636c00110010800000aa00389b71":
                 # Lv3: Claim
-                print('\t\t{}'.format(box))
+                logging.debug('\t\t{}'.format(box))
 
                 store["claim"] = {
                     # example: cai.claim
@@ -2386,7 +2387,7 @@ def cai_boxes_to_json(box_list):
                 current_lv3 = "claim"
             elif box["type"] == "6361736700110010800000aa00389b71":
                 # Lv3: Signature
-                print('\t\t{}'.format(box))
+                logging.debug('\t\t{}'.format(box))
 
                 store["signature"] = {
                     # example: cai.signature
@@ -2398,13 +2399,13 @@ def cai_boxes_to_json(box_list):
                 store = {}
             elif box["type"] == "6a736f6e00110010800000aa00389b71":
                 # Lv4: JSON Description Box
-                print('\t\t\t{}'.format(box))
+                logging.debug('\t\t\t{}'.format(box))
 
                 assertion_label = box["label"]
                 store["assertion_store"]["assertions"][assertion_label] = None
             elif box["type"] == "6579d6fbdba2446bb2ac1b82feeb89d1":
                 # Lv4: Thumbnail
-                print('\t\t\t{}'.format(box))
+                logging.debug('\t\t\t{}'.format(box))
 
                 assertion_label = box["label"]
                 store["assertion_store"]["assertions"][assertion_label] = None
@@ -2412,7 +2413,7 @@ def cai_boxes_to_json(box_list):
                 print("Un-handled type " + box["type"])
         elif box["box_type"] == "json":
             # Lv4: JSON Content Box
-            print('\t\t\t{}'.format(box))
+            logging.debug('\t\t\t{}'.format(box))
 
             if current_lv3 == "assertion_store":
                 store["assertion_store"]["assertions"][assertion_label] = json.loads(box["data"])
@@ -2421,19 +2422,30 @@ def cai_boxes_to_json(box_list):
             elif current_lv3 == "signature":
                 store["signature"]["content"] = json.loads(box["data"])
             else:
-                print("Should not be here")
+                logging.debug("Unknown current_lv3 " + current_lv3)
         else:
-            print("Un-handled box type " + box_type)
-
-    print("Final CAI JSON")
-    print(json.dumps(claim_block, indent=4))
+            logging.debug("Un-handled box type " + box_type)
     return claim_block
+
+
+def get_cai_json_from_f(buffer_reader):
+    global Cai_boxes
+
+    jpg = JPGCodestream(hook=cai_superbox_hook)
+    jpg.stream_parse(buffer_reader, 0)
+    if len(Cai_boxes) != 0:
+        cai_json = cai_boxes_to_json(Cai_boxes)
+        return cai_json
+    else:
+        return None
 
 
 ignore_codestream = 0
 
-if __name__ == "__main__":
-    
+def main():
+    #logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
+
     # Read Arguments
     (args, files) = getopt.getopt(sys.argv[1:], "C", "ignore-codestream")
     for (o, a) in args:
@@ -2445,7 +2457,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print("###############################################################")
-    print("# JP2 file format log file generated by jp2file.py            #")
+    print("# CAI file format log file generated by caifile.py            #")
     print("###############################################################")
     print()
 
@@ -2470,14 +2482,16 @@ if __name__ == "__main__":
             print("JP2Box")
             jp2 = JP2Box(None,file)
             jp2.parse(superbox_hook)
-            
     except JP2Error as e:
         print('***', str(e))
 
     if len(Cai_boxes) != 0:
-        print("CAI Boxes")
-        #for box in Cai_boxes:
-        #    print(box)
-        cai_boxes_to_json(Cai_boxes)
+        cai_json = cai_boxes_to_json(Cai_boxes)
+        print("\nCAI JSON")
+        print(json.dumps(cai_json, indent=4))
     else:
         print("Do not find any CAI Box.")
+
+
+if __name__ == "__main__":
+    main()

@@ -2,7 +2,7 @@
 
 # $Id: icc.py,v 1.8 2016/06/01 16:18:58 thor Exp $
 
-from jp2utils import *
+from codestream_parser.jp2utils import *
 import getopt
 import sys
 

@@ -4,8 +4,8 @@
 import sys
 import io
 
-from jp2utils import *
-from jp2box import *
+from codestream_parser.jp2utils import *
+from codestream_parser.jp2box import *
 
 class InvalidBoxSize(JP2Error):
     def __init__(self):

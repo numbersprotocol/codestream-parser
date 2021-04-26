@@ -5,7 +5,7 @@
 import sys
 import string
 
-from jp2utils import *
+from codestream_parser.jp2utils import *
 
 class UnexpectedEOF(JP2Error):
     def __init__(self):

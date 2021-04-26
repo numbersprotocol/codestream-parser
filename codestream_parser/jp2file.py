@@ -5,13 +5,13 @@
 import getopt
 import sys
 
-from jp2box import *
-from jp2codestream import *
-from jp2utils import *
-from icc import *
-from jxrfile import *
-from jpgcodestream import *
-from jxscodestream import *
+from codestream_parser.jp2box import *
+from codestream_parser.jp2codestream import *
+from codestream_parser.jp2utils import *
+from codestream_parser.icc import *
+from codestream_parser.jxrfile import *
+from codestream_parser.jpgcodestream import *
+from codestream_parser.jxscodestream import *
 
 def parse_resolution_box(box,buffer):
     if len(buffer) != 10:
